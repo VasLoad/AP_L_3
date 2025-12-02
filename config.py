@@ -1,0 +1,10 @@
+APP_NAME = "ForTrain"
+
+DATA_DIR_PATH = "./data/"
+
+ROUTE_MENU_PATH = "/"
+ROUTE_GAME = "/game"
+ROUTE_SETTINGS = "/settings"
+
+MAIN_STYLE_NAME = "Main"
+MAIN_TFRAME_STYLE_NAME = f"{MAIN_STYLE_NAME}.TFrame"

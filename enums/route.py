@@ -1,0 +1,9 @@
+from enum import Enum
+
+from config import ROUTE_MENU_PATH, ROUTE_GAME, ROUTE_SETTINGS
+
+
+class Route(Enum):
+    ROUTE_MENU = ROUTE_MENU_PATH
+    ROUTE_GAME = ROUTE_GAME
+    ROUTE_SETTINGS = ROUTE_SETTINGS
