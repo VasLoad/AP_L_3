@@ -12,7 +12,7 @@ from settings import Settings
 from config import APP_NAME, MENU_STYLE_PATH, RUSSIAN_WORDS_PATH, RUSSIAN_WORDS_REGEX, \
     ENGLISH_WORDS_PATH, ENGLISH_WORDS_REGEX, MIX_WORDS_REGEX
 from utils.storage import load_txt
-from utils.text import load_text_from_file_with_regex
+from utils.text_files import load_text_from_file_with_regex
 
 RUS_TO_LAT = {
     "а": "a", "А": "A",
@@ -20,11 +20,10 @@ RUS_TO_LAT = {
     "о": "o", "О": "O",
     "с": "c", "С": "C",
     "р": "p", "Р": "P",
-    "у": "y", "У": "Y",
+    "у": "y", "К": "K",
     "х": "x", "Х": "X",
-    "к": "k", "К": "K",
     "Т": "T", "Н": "H",
-    "В": "B", "т": "m"
+    "В": "B"
 }
 
 CONFUSABLES = RUS_TO_LAT.copy()
