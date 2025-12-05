@@ -208,6 +208,8 @@ class FontSizeGroup(SettingsGroup):
 
 
 class SettingsFrame(BaseFrame):
+    """Настройки."""
+
     def __init__(self, parent, controller):
         super().__init__(parent, controller, f"{APP_NAME} - Настройки")
 

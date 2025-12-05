@@ -22,8 +22,8 @@ RUS_TO_LAT = {
     "р": "p", "Р": "P",
     "у": "y", "К": "K",
     "х": "x", "Х": "X",
-    "Т": "T", "Н": "H",
-    "В": "B"
+    "М": "M", "Т": "T",
+    "Н": "H", "В": "B"
 }
 
 CONFUSABLES = RUS_TO_LAT.copy()
@@ -36,6 +36,8 @@ SPLIT_CHARS = [" ", ".", ",", ";", "!", "?"]
 
 
 class TextGenerator:
+    """Тренажёр."""
+
     def __init__(
             self,
             language: Language,
@@ -238,14 +240,14 @@ class TrainerFrame(BaseFrame):
         ttk.Button(
             header_buttons,
             text="В МЕНЮ",
-            command=lambda: self._controller.go(Route.ROUTE_MENU),
+            command=lambda: (self.__stop_timers(), self._controller.go(Route.ROUTE_MENU)),
             style="TrainerHeader.TButton"
         ).pack(side="left", padx=5)
 
         ttk.Button(
             header_buttons,
             text="НАСТРОЙКИ",
-            command=lambda: self._controller.go(Route.ROUTE_SETTINGS),
+            command=lambda: (self.__stop_timers(), self._controller.go(Route.ROUTE_SETTINGS)),
             style="TrainerHeader.TButton"
         ).pack(side="left", padx=5)
 
@@ -293,6 +295,10 @@ class TrainerFrame(BaseFrame):
         if self.__settings.difficulty in [Difficulty.EASY, Difficulty.NORMAL]:
             self.__upload_text_btn.pack(side="left", padx=5)
 
+    def __stop_timers(self):
+        self.__countdown_running = False
+        self.__elapsed_running = False
+
     def __update_text_display(self, text: Optional[str] = None):
         generated_text = TextGenerator(
             self.__settings.language,
@@ -304,9 +310,7 @@ class TrainerFrame(BaseFrame):
 
         self.__text_swapper = TextSwapper(generated_text)
 
-        self.__countdown_running = False
-
-        self.__elapsed_running = False
+        self.__stop_timers()
 
         self.__elapsed_start = None
 
@@ -435,10 +439,10 @@ class TrainerFrame(BaseFrame):
         if self.__countdown_time_left <= 0:
             try:
                 self.__countdown_label.config(text="00:00")
-            except Exception as ex:
+            except tk.TclError:
                 pass
 
-            self.__countdown_running = False
+            self.__stop_timers()
 
             self.__finish(time_is_up=True)
 
@@ -449,7 +453,7 @@ class TrainerFrame(BaseFrame):
 
         try:
             self.__countdown_label.config(text=f"{minutes:02}:{seconds:02}")
-        except Exception:
+        except tk.TclError:
             pass
 
         self._parent.after(1000, self.__update_countdown)
@@ -464,7 +468,7 @@ class TrainerFrame(BaseFrame):
 
         try:
             self.__elapsed_label.config(text=f"{minutes:02}:{seconds:02}")
-        except Exception:
+        except tk.TclError:
             pass
 
         self._parent.after(250, self.__update_elapsed_label)
@@ -510,7 +514,7 @@ class TrainerFrame(BaseFrame):
         else:
             result_msg = "Готово!"
 
-        self.__countdown_running = False
+        self.__stop_timers()
 
         messagebox.showinfo(
             result_msg,
@@ -537,7 +541,10 @@ class TrainerFrame(BaseFrame):
         cpm = int((self.__correct_chars_typed_in_previous_lines + correct_chars) / elapsed * 60) if correct_chars > 0 else 0
         wpm = int(cpm / 5)
 
-        self.__stats_label.config(text=f"{self.__text_swapper.index_decorated}   CPM: {cpm}   WPM: {wpm}") # Ошибки: {self.__errors}
+        try:
+            self.__stats_label.config(text=f"{self.__text_swapper.index_decorated}   CPM: {cpm}   WPM: {wpm}") # Ошибки: {self.__errors}
+        except tk.TclError:
+            pass
 
     def __upload_own_text(self):
         file_path = filedialog.askopenfilename(
