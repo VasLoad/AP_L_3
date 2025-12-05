@@ -384,19 +384,14 @@ class TrainerFrame(BaseFrame):
 
         self.__text_display.config(state="disabled")
 
-    def __chars_match(self, expected: str, typed: str) -> bool:
-        """
-        Возвращает True, если символы совпадают точно или визуально
-        (а/a, о/o, т/m и т.д. — всегда засчитывается, независимо от языка)
-        """
+    @staticmethod
+    def __chars_match(expected: str, typed: str) -> bool:
         if not expected or not typed:
             return False
 
-        # Точное совпадение
         if expected == typed:
             return True
 
-        # Визуальное совпадение по твоей таблице — в любую сторону
         return CONFUSABLES.get(expected) == typed
 
     def __check_input(self, event):
