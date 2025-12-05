@@ -1,0 +1,21 @@
+{
+    "SettingsRadioButton.TRadiobutton": {
+        "font": ["Segoe UI", 12]
+    },
+    "SettingsLabelFrame.TLabelframe": {
+      "relief": "groove"
+    },
+    "SettingsLabelFrame.TLabelframe.Label": {
+      "font": ["Segoe UI", 14, "bold"]
+    },
+    "SettingsParamValueLabel.TLabel": {
+      "font": ["Segoe UI", 14]
+    },
+    "SettingsCheckbutton.TCheckbutton": {
+      "font": ["Segoe UI", 12, "bold"]
+    },
+    "SettingApplyAndBackButton.TButton": {
+      "font": ["Segoe UI", 18, "bold"],
+      "padding": [5, 5]
+    }
+}

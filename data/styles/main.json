@@ -1,0 +1,8 @@
+{
+    "Title.TLabel": {
+      "font": ["Russo One",  45, "bold"]
+    },
+    "FrameTitle.TLabel": {
+      "font": ["Russo One", 20, "bold"]
+    }
+}

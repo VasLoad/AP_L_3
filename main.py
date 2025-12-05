@@ -106,8 +106,6 @@ class Application(tk.Tk):
 
         frame_content.grid(row=0, column=0, sticky="nsew")
 
-        # frame.configure(style=MAIN_TFRAME_STYLE_NAME)
-
         self.__frame = frame
 
         self.__content = frame_content

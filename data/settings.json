@@ -1,0 +1,9 @@
+{
+   "language": "mix",
+   "difficulty": "easy",
+   "font_size": 25,
+   "theme_mode": "dark",
+   "challenges": {
+      "on_time": true
+   }
+}

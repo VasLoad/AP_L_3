@@ -32,7 +32,6 @@ class MenuFrame(BaseFrame):
         subtitle = ttk.Label(
             center_frame,
             text="Клавиатурный тренажёр",
-            foreground="#8888bb",
             font=("Segoe UI Light", 20)
         )
         subtitle.grid(row=1, column=0, pady=(0, 50))

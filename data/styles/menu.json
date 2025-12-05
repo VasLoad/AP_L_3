@@ -1,0 +1,7 @@
+{
+    "Menu.TButton": {
+      "font": ["Segoe UI", 18, "bold"],
+      "padding": [20, 20],
+      "width": 20
+    }
+}
