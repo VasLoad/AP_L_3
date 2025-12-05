@@ -4,9 +4,9 @@ import sv_ttk
 from functools import cached_property
 from typing import Optional, Any
 
-from config import APP_NAME, MAIN_TFRAME_STYLE_NAME
+from config import APP_NAME, MAIN_STYLE_PATH, STYLES_DIR_PATH, ROUTE_SPECIAL_SYMBOL
 from frames.base import BaseFrame
-from settings import SETTINGS_FILE_PATH, DEFAULT_SETTINGS
+from settings import SETTINGS_FILE_PATH, DEFAULT_SETTINGS, Settings
 
 from enums.route import Route
 from enums.theme_mode import ThemeMode
@@ -14,45 +14,48 @@ from enums.settings import SettingsParam
 
 from frames.menu import MenuFrame
 from frames.settings import SettingsFrame
-from frames.game import GameFrame
+from frames.trainer import TrainerFrame
 
-from utils.storage import load_json, save_json
+from utils.storage import load_json, save_json, get_files_paths_from_dir_path
 
 
 class Application(tk.Tk):
     def __init__(
             self,
-            name: str,
+            title: str,
             settings_file_path: str,
-            frames: dict[Route, BaseFrame],
+            frames: dict,
             theme_mode: ThemeMode = ThemeMode.DARK,
             geometry: Optional[str] = None
     ):
         super().__init__()
 
+        self.__style: ttk.Style
+        self.__start_style()
+
         self._theme_mode = theme_mode
         self.theme_mode = self._theme_mode
 
-        self.__name = name
+        self.title(title)
 
         if geometry:
             self.geometry(geometry)
 
         self.__settings_file_path = settings_file_path
-        self.__settings: dict[str, Any] = {}
+        self.__settings: Settings = Settings(DEFAULT_SETTINGS)
         self.load_settings(apply=True)
-
-        self.__configure_style()
 
         self.__container: tk.Frame = self.__build_container()
 
-        self.__frames: dict[Route, BaseFrame] = self.__build_frames(frames)
+        self.__frames: dict[Route, type[BaseFrame]] = frames
+
+        self.__frame: Optional[BaseFrame] = None
+
+        self.__content: Optional[ttk.Frame] = None
 
         self.__route: Optional[Route] = None
 
-    @property
-    def name(self) -> str:
-        return self.__name
+        self.__routes_history: list[Route] = []
 
     @property
     def settings_file_path(self) -> str:
@@ -66,17 +69,50 @@ class Application(tk.Tk):
     def route(self, value: Route):
         self.go(value)
 
-    def go(self, route: Route):
-        frame: Optional[BaseFrame] = self.__frames.get(route)
+    def go(self, route: Route, force_refresh: bool = False):
+        if not force_refresh and self.__route == route and self.__content:
+            self.__frame.refresh(self.__style)
 
-        if not frame:
             return
 
+        if route not in self.__frames.keys() and  route.value[0] != ROUTE_SPECIAL_SYMBOL:
+            return
+
+        if route is Route.ROUTE_BACK:
+            if len(self.__routes_history) > 1:
+                self.__routes_history.pop()
+
+                route = self.__routes_history[-1]
+        else:
+            self.__routes_history.append(route)
+
+        self.__frame = None
+
+        if self.__content:
+            self.__content.destroy()
+
+            self.__content = None
+
+        frame_class = self.__frames.get(route)
+
+        if not frame_class:
+            return
+
+        frame = frame_class(parent=self.__container, controller=self)
+
+        frame.refresh(self.__style)
+
+        frame_content = frame.content
+
+        frame_content.grid(row=0, column=0, sticky="nsew")
+
+        # frame.configure(style=MAIN_TFRAME_STYLE_NAME)
+
+        self.__frame = frame
+
+        self.__content = frame_content
+
         self.__route = route
-
-        frame.refresh(self.__configure_style())
-
-        frame.tkraise()
 
     @property
     def theme_mode(self) -> ThemeMode:
@@ -100,20 +136,22 @@ class Application(tk.Tk):
         except Exception as ex:
             self.show_error("Ошибка смены темы", f"Не удалось сменить тему.\nТекст ошибки: {ex}.")
 
-        self.__configure_style()
+        self.refresh_styles()
 
         self._theme_mode = new_theme_mode
 
     @property
-    def settings(self) -> dict[str, Any]:
-        return self.__settings.copy()
+    def settings(self) -> Settings:
+        self.load_settings()
+
+        return self.__settings
 
     @settings.setter
-    def settings(self, value: dict[str, Any]):
+    def settings(self, value: Settings):
         if not value:
             self.show_error("Пустой параметр", "Параметр value не может быть пустым!")
         else:
-            self.__settings = value.copy()
+            self.__settings = value
 
     def load_settings(self, default_data: Optional[dict[str, Any]] = None, path: Optional[str] = None, apply: bool = False):
         if not path:
@@ -139,14 +177,14 @@ class Application(tk.Tk):
 
             self.save_settings(settings)
 
-        self.settings = settings
+        self.settings = Settings(settings)
 
         if apply:
             self.apply_settings()
 
     def apply_settings(self):
         try:
-            theme_mode = ThemeMode(self.settings.get(SettingsParam.THEME_MODE.value))
+            theme_mode = ThemeMode(self.settings.theme_mode)
 
             self.toggle_theme_mode(theme_mode)
         except ValueError as ex:
@@ -173,10 +211,6 @@ class Application(tk.Tk):
     def default_settings(self) -> dict[str, Any]:
         return DEFAULT_SETTINGS
 
-    @property
-    def frames(self) -> dict[Route, BaseFrame]:
-        return self.__frames.copy()
-
     @staticmethod
     def show_error(title: str = "Ошибка", message: str = "Произошла неизвестная ошибка"):
         messagebox.showerror(title=title, message=f"{message}")
@@ -189,22 +223,34 @@ class Application(tk.Tk):
     def show_info(title: str = "Информация", message: str = ""):
         messagebox.showinfo(title=title, message=message)
 
-    @staticmethod
-    def __configure_style() -> ttk.Style:
-        style = ttk.Style()
+    def __start_style(self):
+        self.__style = ttk.Style()
 
-        style.configure(MAIN_TFRAME_STYLE_NAME)
+        self.configure_style_by_path(self.__style, MAIN_STYLE_PATH)
 
-        style.configure(
-            "Title.TLabel",
-            font=(
-                "Russo One",
-                45,
-                "bold"
-            )
-        )
+    def refresh_styles(self) -> ttk.Style:
+        style = self.__style
+
+        paths: list[str] = get_files_paths_from_dir_path(STYLES_DIR_PATH)
+
+        for path in paths:
+            self.configure_style_by_path(style, path)
 
         return style
+
+    def configure_style_by_path(self, style, path):
+        try:
+            styles = load_json(path)
+        except Exception as ex:
+            self.show_error("Ошибка обновления стилей", f"Произошла ошибка при обновлении стилей.\nТекст ошибка: {ex}.")
+
+            return
+
+        for widget_style, params in styles.items():
+            style.configure(
+                widget_style,
+                **params
+            )
 
     def __build_container(self) -> tk.Frame:
         container = tk.Frame(self, padx=25, pady=25)
@@ -217,20 +263,6 @@ class Application(tk.Tk):
 
         return container
 
-    def __build_frames(self, raw_frames: dict) -> dict[Route, BaseFrame]:
-        frames = {}
-
-        for route, frame_class in raw_frames.items():
-            frame = frame_class(parent=self.__container, controller=self)
-
-            frame.configure(style=MAIN_TFRAME_STYLE_NAME)
-
-            frame.grid(row=0, column=0, sticky="nsew")
-
-            frames[route] = frame
-
-        return frames
-
 
 if __name__ == "__main__":
     app = Application(
@@ -238,9 +270,10 @@ if __name__ == "__main__":
         SETTINGS_FILE_PATH,
         {
             Route.ROUTE_MENU: MenuFrame,
-            Route.ROUTE_GAME: GameFrame,
+            Route.ROUTE_TRAINER: TrainerFrame,
             Route.ROUTE_SETTINGS: SettingsFrame
-        }
+        },
+        geometry="1250x950"
     )
 
     app.go(Route.ROUTE_MENU)
