@@ -6,6 +6,49 @@ from config import DEFAULT_JSON_INDENT
 from errors import FileReadError, FileWriteError, FileSuffixError
 
 
+def load_txt(path: str, default_data: Optional[str] = None) -> str:
+    """
+    Загружает данные из файла .TXT.
+    Если данных нет, то возвращает данные по умолчанию (опционально).
+
+    Args:
+        path: Путь к файлу данных
+        default_data: Данные по умолчанию (опционально)
+
+    Returns:
+        Данные из файла
+
+    Raises:
+        FileSuffixError: Неверное расширение файла данных
+        FileReadError: Ошибка при чтении файла данных
+    """
+
+    path = Path(path)
+
+    if default_data is None:
+        default_data = ""
+
+    file_suffix = path.suffix.lower()
+    suffix = ".txt"
+
+    if file_suffix != suffix:
+        raise FileSuffixError(suffix, file_suffix)
+
+    if not path.exists():
+        return default_data
+
+    try:
+        with open(path, "r", encoding="utf-8") as file:
+            data = file.read()
+
+            if not data.strip():
+                return default_data
+
+            return data
+    except PermissionError as ex:
+        raise FileReadError(str(path.absolute()), str(ex))
+
+
 def get_files_paths_from_dir_path(dir_path: str) -> list[str]:
     """
     Возвращает список путей к файлам, находящихся по переданному пути к директории.
@@ -60,7 +103,7 @@ def load_json(path: str, default_data: Optional[dict[str, Any]] = None) -> dict[
         default_data: Данные по умолчанию (опционально)
 
     Returns:
-        Загруженные данные
+        Данные из файла
 
     Raises:
         FileSuffixError: Неверное расширение файла данных
@@ -90,7 +133,7 @@ def load_json(path: str, default_data: Optional[dict[str, Any]] = None) -> dict[
 
             return json.loads(data)
     except (json.JSONDecodeError, PermissionError) as ex:
-        raise FileReadError(str(path.absolute()), ex)
+        raise FileReadError(str(path.absolute()), str(ex))
 
 
 def save_json(path: str, data: dict[str, Any], indent: int = DEFAULT_JSON_INDENT):
@@ -124,4 +167,4 @@ def save_json(path: str, data: dict[str, Any], indent: int = DEFAULT_JSON_INDENT
         with open(path, "w", encoding="utf-8") as f:
             json.dump(current_data, f, ensure_ascii=False, indent=indent)
     except (PermissionError, OSError) as ex:
-        raise FileWriteError(str(path.absolute()), ex)
+        raise FileWriteError(str(path.absolute()), str(ex))
