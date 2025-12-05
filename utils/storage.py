@@ -2,7 +2,33 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
+from config import DEFAULT_JSON_INDENT
 from errors import FileReadError, FileWriteError, FileSuffixError
+
+
+def get_files_paths_from_dir_path(dir_path: str) -> list[str]:
+    """
+    Возвращает список путей к файлам, находящихся по переданному пути к директории.
+
+    Args:
+        dir_path: Путь к директории для получения списка путей к находящимся в ней файлов
+
+    Returns:
+        Список путей к файлам, находящихся по переданному пути к директории
+    """
+
+    dir_path = Path(dir_path)
+
+    if not dir_path.exists():
+        return []
+
+    files_paths: list[str] = []
+
+    for file_path in dir_path.iterdir():
+        if file_path.is_file():
+            files_paths.append(str(file_path))
+
+    return files_paths
 
 
 def merge_dicts(source: dict, update: dict) -> Optional[dict]:
@@ -56,7 +82,7 @@ def load_json(path: str, default_data: Optional[dict[str, Any]] = None) -> dict[
         return default_data.copy()
 
     try:
-        with open(path, 'r', encoding="utf-8") as file:
+        with open(path, "r", encoding="utf-8") as file:
             data = file.read().strip()
 
             if not data:
@@ -67,7 +93,7 @@ def load_json(path: str, default_data: Optional[dict[str, Any]] = None) -> dict[
         raise FileReadError(str(path.absolute()), ex)
 
 
-def save_json(path: str, data: dict[str, Any], indent: int = 3):
+def save_json(path: str, data: dict[str, Any], indent: int = DEFAULT_JSON_INDENT):
     """
     Сохраняет данные в файл .JSON, не трогая другие данные.
 
@@ -95,7 +121,7 @@ def save_json(path: str, data: dict[str, Any], indent: int = 3):
     merge_dicts(current_data, data)
 
     try:
-        with open(path, 'w', encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(current_data, f, ensure_ascii=False, indent=indent)
     except (PermissionError, OSError) as ex:
         raise FileWriteError(str(path.absolute()), ex)
