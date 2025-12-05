@@ -20,6 +20,8 @@ from utils.storage import load_json, save_json, get_files_paths_from_dir_path
 
 
 class Application(tk.Tk):
+    """Главный элемент приложения."""
+
     def __init__(
             self,
             title: str,
@@ -121,6 +123,13 @@ class Application(tk.Tk):
         self.toggle_theme_mode(value)
 
     def toggle_theme_mode(self, theme_mode: Optional[ThemeMode] = None):
+        """
+        Смена темы приложения.
+
+        Args:
+            theme_mode: Тема приложения (опционально)
+        """
+
         new_theme_mode: ThemeMode = theme_mode
 
         if not new_theme_mode:
@@ -151,12 +160,15 @@ class Application(tk.Tk):
         else:
             self.__settings = value
 
-    def load_settings(self, default_data: Optional[dict[str, Any]] = None, path: Optional[str] = None, apply: bool = False):
-        if not path:
-            path = self.__settings_file_path
+    def load_settings(self, default_data: Optional[dict[str, Any]] = DEFAULT_SETTINGS, path: Optional[str] = SETTINGS_FILE_PATH, apply: bool = False):
+        """
+        Загрузка настроек из файла .JSON.
 
-        if not default_data:
-            default_data = self.default_settings
+        Args:
+            default_data: Настройки по умолчанию (опционально)
+            path: Путь к файлу настроек (опционально)
+            apply: Применить настройки?
+        """
 
         try:
             settings = load_json(path)
@@ -181,6 +193,8 @@ class Application(tk.Tk):
             self.apply_settings()
 
     def apply_settings(self):
+        """Применить настройки."""
+
         try:
             theme_mode = ThemeMode(self.settings.theme_mode)
 
@@ -194,6 +208,14 @@ class Application(tk.Tk):
             self.toggle_theme_mode(DEFAULT_SETTINGS.get(SettingsParam.THEME_MODE.value))
 
     def save_settings(self, data: dict[str, Any], path: Optional[str] = None):
+        """
+        Сохранить настройки в файл .JSON.
+
+        Args:
+            data: Настройки в формате словаря
+            path: Путь к файлу настроек (опционально)
+        """
+
         if not path:
             path = self.__settings_file_path
 
@@ -222,11 +244,15 @@ class Application(tk.Tk):
         messagebox.showinfo(title=title, message=message)
 
     def __start_style(self):
+        """Создать исходный стиль."""
+
         self.__style = ttk.Style()
 
         self.configure_style_by_path(self.__style, MAIN_STYLE_PATH)
 
     def refresh_styles(self) -> ttk.Style:
+        """Перезагрузить стили."""
+
         style = self.__style
 
         paths: list[str] = get_files_paths_from_dir_path(STYLES_DIR_PATH)
@@ -237,6 +263,14 @@ class Application(tk.Tk):
         return style
 
     def configure_style_by_path(self, style, path):
+        """
+        Настроить стиль из файла .JSON.
+
+        Args:
+            style: Исходный стиль
+            path: Путь к файлу стиля
+        """
+
         try:
             styles = load_json(path)
         except Exception as ex:
@@ -251,6 +285,8 @@ class Application(tk.Tk):
             )
 
     def __build_container(self) -> tk.Frame:
+        """Создать контейнер для фреймов."""
+
         container = tk.Frame(self, padx=25, pady=25)
 
         container.pack(fill="both", expand=True)
