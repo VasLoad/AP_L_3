@@ -10,7 +10,7 @@ from enums.route import Route
 from enums.settings import Difficulty, Language
 from settings import Settings
 from config import APP_NAME, MENU_STYLE_PATH, RUSSIAN_WORDS_PATH, RUSSIAN_WORDS_REGEX, \
-    ENGLISH_WORDS_PATH, ENGLISH_WORDS_REGEX, SPLIT_CHARS, MIX_WORDS_REGEX
+    ENGLISH_WORDS_PATH, ENGLISH_WORDS_REGEX, MIX_WORDS_REGEX
 from utils.storage import load_txt
 from utils.text import load_text_from_file_with_regex
 
@@ -23,10 +23,17 @@ RUS_TO_LAT = {
     "у": "y", "У": "Y",
     "х": "x", "Х": "X",
     "к": "k", "К": "K",
-    "т": "m",
+    "Т": "T", "Н": "H",
+    "В": "B", "т": "m"
 }
 
+CONFUSABLES = RUS_TO_LAT.copy()
+
+CONFUSABLES.update({v: k for k, v in RUS_TO_LAT.items()})
+
 LAT_TO_RUS = {v: k for k, v in RUS_TO_LAT.items()}
+
+SPLIT_CHARS = [" ", ".", ",", ";", "!", "?"]
 
 
 class TextGenerator:
@@ -69,7 +76,7 @@ class TextGenerator:
         return self.__split_text()
 
     def generate_text(self):
-        target_len = random.randrange(75, 125)
+        target_len = random.randrange(125, 250)
 
         if self.__letters:
             join_symbol = ""
@@ -174,6 +181,10 @@ class TextSwapper:
 
         return line
 
+    @property
+    def index_decorated(self) -> str:
+        return f"{self.__current_index}/{self.__max_index + 1}"
+
 
 class TrainerFrame(BaseFrame):
     def __init__(self, parent, controller):
@@ -266,7 +277,7 @@ class TrainerFrame(BaseFrame):
         self.__entry.pack()
         self.__entry.bind("<KeyRelease>", self.__check_input)
 
-        self.__stats_label = ttk.Label(frame, text="CPM: 0   WPM: 0", font=("Segoe UI", 14)) # Ошибки: 0
+        self.__stats_label = ttk.Label(frame, text="", font=("Segoe UI", 14)) # Ошибки: 0
         self.__stats_label.pack(pady=10)
 
         self.__prepare_ui()
@@ -305,13 +316,13 @@ class TrainerFrame(BaseFrame):
         total_seconds = max(1, int(sum(len(inner) for inner in generated_text)))
 
         if self.__settings.difficulty is Difficulty.EASY:
-            total_seconds = int(total_seconds * 1.5)
+            total_seconds = int(total_seconds * 0.85)
         elif self.__settings.difficulty is Difficulty.NORMAL:
-            total_seconds = int(total_seconds * 1.25)
+            total_seconds = int(total_seconds * 0.75)
         elif self.__settings.difficulty is Difficulty.HARD:
-            total_seconds = int(total_seconds * 1.15)
+            total_seconds = int(total_seconds * 0.5)
         else:
-            pass
+            total_seconds = int(total_seconds * 0.25)
 
         self.__countdown_time_total = total_seconds
         self.__countdown_time_left = total_seconds
@@ -330,6 +341,8 @@ class TrainerFrame(BaseFrame):
 
         if text is None:
             self.__finish()
+
+            return
 
         self.__current_line = text if text else ""
 
@@ -369,44 +382,19 @@ class TrainerFrame(BaseFrame):
         self.__text_display.config(state="disabled")
 
     def __chars_match(self, expected: str, typed: str) -> bool:
+        """
+        Возвращает True, если символы совпадают точно или визуально
+        (а/a, о/o, т/m и т.д. — всегда засчитывается, независимо от языка)
+        """
+        if not expected or not typed:
+            return False
+
+        # Точное совпадение
         if expected == typed:
             return True
 
-        if self._are_confusable(expected, typed):
-            typed_is_cyr = self._is_cyrillic(typed)
-            typed_is_lat = self._is_latin(typed)
-
-            if self.__settings.language is Language.RUSSIAN:
-                return typed_is_cyr
-            elif self.__settings.language is Language.ENGLISH:
-                return typed_is_lat
-            elif self.__settings.language is Language.MIX:
-                return typed_is_cyr
-            else:
-                return False
-
-        return False
-
-    @staticmethod
-    def _is_cyrillic(ch: str) -> bool:
-        if not ch:
-            return False
-
-        return ('А' <= ch <= 'я') or ('ѐ' <= ch <= 'ӿ') or ('ⷠ' <= ch <= 'ⷿ') or ('Ꙁ' <= ch <= 'ꚟ')
-
-    @staticmethod
-    def _is_latin(ch: str) -> bool:
-        if not ch:
-            return False
-
-        return ('A' <= ch <= 'Z') or ('a' <= ch <= 'z')
-
-    @staticmethod
-    def _are_confusable(a: str, b: str) -> bool:
-        if not a or not b:
-            return False
-
-        return (RUS_TO_LAT.get(a) == b) or (LAT_TO_RUS.get(a) == b)
+        # Визуальное совпадение по твоей таблице — в любую сторону
+        return CONFUSABLES.get(expected) == typed
 
     def __check_input(self, event):
         typed = self.__entry.get()
@@ -448,7 +436,7 @@ class TrainerFrame(BaseFrame):
         if self.__countdown_time_left <= 0:
             try:
                 self.__countdown_label.config(text="00:00")
-            except Exception:
+            except Exception as ex:
                 pass
 
             self.__countdown_running = False
@@ -550,7 +538,7 @@ class TrainerFrame(BaseFrame):
         cpm = int((self.__correct_chars_typed_in_previous_lines + correct_chars) / elapsed * 60) if correct_chars > 0 else 0
         wpm = int(cpm / 5)
 
-        self.__stats_label.config(text=f"CPM: {cpm}   WPM: {wpm}") # Ошибки: {self.__errors}
+        self.__stats_label.config(text=f"{self.__text_swapper.index_decorated}   CPM: {cpm}   WPM: {wpm}") # Ошибки: {self.__errors}
 
     def __upload_own_text(self):
         file_path = filedialog.askopenfilename(
